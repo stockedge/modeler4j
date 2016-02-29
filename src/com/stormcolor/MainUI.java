@@ -52,7 +52,7 @@ public class MainUI extends JFrame {
 	 * Create the frame.
 	 */
 	public MainUI(final Modeler modeler) {
-		setTitle("STORM MODELER JAVA");
+		setTitle("MODELER4J");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 777, 664);
 		

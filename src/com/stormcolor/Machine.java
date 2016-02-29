@@ -49,10 +49,10 @@ public class Machine {
 	// El algoritmo implementado actualmente en este programa es para la realización de trazados con un rotulador a partir de un fichero gerber
 	
 	// public variables
-	private final float stepsForX = 600f;
-	private final float stepsForY = 26000f;
-	private final float distanceCMwith_stepsForX = 10.09f;
-	private final float distanceCMwith_stepsForY = 11.95f;
+	private final float stepsForX = 800f; // MITSUMI L-R
+	private final float stepsForY = 525000f; // MINEBEA F-B
+	private final float distanceCMwith_stepsForX = 13.55f;
+	private final float distanceCMwith_stepsForY = 12.0f;
 	
 	// private variables
 	private final float stepDistanceMMUnitX = (distanceCMwith_stepsForX*10f)/stepsForX;
@@ -74,9 +74,11 @@ public class Machine {
 	private Timer timer;
 	private Timer timerTMPX;
 	private Timer timerTMPY;
+	private float xLength;
+	private float yLength;
 	private int xSteps;
 	private int ySteps;
-	public int STEP_ACUM_MAX = 32750;
+	public int STEP_ACUM_MAX = 65535;
 	private int acumNumberX = STEP_ACUM_MAX;
 	private int acumNumberY = STEP_ACUM_MAX;
 	private float lastDifferenceX = 0f;
@@ -143,8 +145,8 @@ public class Machine {
 	
 	
 	public void stepsLeftCommand(int steps, int acumStepNumber) {
-		String cmd = "$"+steps+"L"+acumStepNumber+"M$";
-		System.out.println(cmd);
+		String cmd = "^"+steps+"L"+acumStepNumber+"M$";
+		System.out.println("SEND LEFT... "+cmd);
 		modeler.mainUI.btnLeft.setBackground(Color.ORANGE);
 		try {
 			modeler.serial.sendSerial(cmd);
@@ -154,8 +156,8 @@ public class Machine {
 	}
 	
 	public void stepsRightCommand(int steps, int acumStepNumber) {
-		String cmd = "$"+steps+"R"+acumStepNumber+"M$";
-		System.out.println(cmd);
+		String cmd = "^"+steps+"R"+acumStepNumber+"M$";
+		System.out.println("SEND RIGHT... "+cmd);
 		modeler.mainUI.btnRight.setBackground(Color.ORANGE);
 		try {
 			modeler.serial.sendSerial(cmd);
@@ -165,8 +167,8 @@ public class Machine {
 	}
 	
 	public void stepsFrontCommand(int steps, int acumStepNumber) {
-		String cmd = "$"+steps+"F"+acumStepNumber+"M$";
-		System.out.println(cmd);
+		String cmd = "^"+steps+"F"+acumStepNumber+"M$";
+		System.out.println("SEND FRONT... "+cmd);
 		modeler.mainUI.btnFront.setBackground(Color.ORANGE);
 		try {
 			modeler.serial.sendSerial(cmd);
@@ -176,8 +178,8 @@ public class Machine {
 	}
 	
 	public void stepsBackCommand(int steps, int acumStepNumber) {
-		String cmd = "$"+steps+"B"+acumStepNumber+"M$";
-		System.out.println(cmd);
+		String cmd = "^"+steps+"B"+acumStepNumber+"M$";
+		System.out.println("SEND BACK... "+cmd);
 		modeler.mainUI.btnBack.setBackground(Color.ORANGE);
 		try {
 			modeler.serial.sendSerial(cmd);
@@ -187,8 +189,8 @@ public class Machine {
 	}
 	
 	public void stepsUpCommand(int steps, int acumStepNumber) {
-		String cmd = "$"+steps+"U"+acumStepNumber+"M$";
-		System.out.println(cmd);
+		String cmd = "^"+steps+"U"+acumStepNumber+"M$";
+		System.out.println("SEND UP... "+cmd);
 		modeler.mainUI.btnUp.setBackground(Color.ORANGE);
 		try {
 			modeler.serial.sendSerial(cmd);
@@ -198,8 +200,8 @@ public class Machine {
 	}
 	
 	public void stepsDownCommand(int steps, int acumStepNumber) {
-		String cmd = "$"+steps+"D"+acumStepNumber+"M$";
-		System.out.println(cmd);
+		String cmd = "^"+steps+"D"+acumStepNumber+"M$";
+		System.out.println("SEND DOWN... "+cmd);
 		modeler.mainUI.btnDown.setBackground(Color.ORANGE);
 		try {
 			modeler.serial.sendSerial(cmd);
@@ -222,13 +224,11 @@ public class Machine {
 		            	if(currentPosZ>downPosZ) {
 				    		// down
 		            		s = Math.round(currentPosZ-downPosZ);
-		            		System.out.println("DOWN "+s+"...");
 		            		stepsDownCommand(s, STEP_ACUM_MAX);
 		            		setCurrentPosZ(currentPosZ-s);
 		            	} else {
 				    		// up
 		            		s = Math.round(downPosZ-currentPosZ);
-		            		System.out.println("UP "+s+"...");
 				    		stepsUpCommand(s, STEP_ACUM_MAX);
 				    		setCurrentPosZ(currentPosZ+s);
 		            	}
@@ -253,13 +253,11 @@ public class Machine {
 				    	if(currentPosZ>upPosZ) {				    		
 				    		// down
 		            		s = Math.round(currentPosZ-upPosZ);
-		            		System.out.println("DOWN "+s+"...");
 				    		stepsDownCommand(s, STEP_ACUM_MAX);
 				    		setCurrentPosZ(currentPosZ-s);
 				    	} else {
 				    		// up
 				    		s = Math.round(upPosZ-currentPosZ);
-		            		System.out.println("UP "+s+"...");
 				    		stepsUpCommand(s, STEP_ACUM_MAX);
 				    		setCurrentPosZ(currentPosZ+s);
 				    	}
@@ -312,25 +310,29 @@ public class Machine {
 		float numStepsForDisplaceY = yLength/stepDistanceTHUnitY;
 		ySteps = Math.round(numStepsForDisplaceY+lastDifferenceY);*/
 		// X
-		float xLength = Math.abs(targetPos.x-currentPos.x);		
-		System.out.println("- xLength "+xLength);
+		xLength = Math.abs(targetPos.x-currentPos.x);
 		float numStepsForDisplaceX = xLength/stepDistanceTHUnitX;
 		xSteps = Math.round(numStepsForDisplaceX+lastDifferenceX);
 		// Y
-		float yLength = Math.abs(targetPos.y-currentPos.y);		
-		System.out.println("- yLength "+yLength);
+		yLength = Math.abs(targetPos.y-currentPos.y);		
 		float numStepsForDisplaceY = yLength/stepDistanceTHUnitY;
 		ySteps = Math.round(numStepsForDisplaceY+lastDifferenceY);
+		
+		System.out.println("-> displacing XY (distance th: "+(xLength)+", "+(yLength)+"; steps: "+xSteps+", "+ySteps+")");
 		
 		acumNumberX = STEP_ACUM_MAX;
 		acumNumberY = STEP_ACUM_MAX;
 		if(xLength > yLength) {
 			float dd = yLength/xLength; 
-			acumNumberY = Math.round(dd*STEP_ACUM_MAX);
+			acumNumberY = Math.round(dd*STEP_ACUM_MAX*(1.0f));
 		} else if(yLength > xLength) {
 			float dd = xLength/yLength;
-			acumNumberX = Math.round(dd*STEP_ACUM_MAX);
+			acumNumberX = Math.round(dd*STEP_ACUM_MAX*((stepsForX/stepsForY)));
 		}
+		if(xLength > 3f && acumNumberY == STEP_ACUM_MAX)
+			acumNumberY--;
+		if(yLength > 3f && acumNumberX == STEP_ACUM_MAX)
+			acumNumberX--;
 		
 		// X		
 		lastDifferenceX = numStepsForDisplaceX-xSteps;
@@ -338,7 +340,7 @@ public class Machine {
 		timerTMPX = new Timer (200, new ActionListener () { 
 		    public void actionPerformed(ActionEvent e) { 
 		    	timerTMPX.stop();
-		    	if(Math.abs(xSteps) > 1) {
+		    	if(xLength > 3f) {
 					if(targetPos.x < currentPos.x) {
 						stepsLeftCommand(Math.abs(xSteps), acumNumberX);
 						setCurrentPosX(currentPos.x-(xSteps*stepDistanceTHUnitX));
@@ -347,7 +349,7 @@ public class Machine {
 						setCurrentPosX(currentPos.x+(xSteps*stepDistanceTHUnitX));
 					} 	
 					
-		    	} else onSerialReceived("Y");	
+		    	} else onSerialReceived("H");	
 			} 
 		});	
 		timerTMPX.start();
@@ -358,7 +360,7 @@ public class Machine {
 		timerTMPY = new Timer (400, new ActionListener () { 
 		    public void actionPerformed(ActionEvent e) { 
 		    	timerTMPY.stop();
-		    	if(Math.abs(ySteps) > 1) {
+		    	if(yLength > 3f) {
 			    	if(targetPos.y < currentPos.y) {
 			    		stepsFrontCommand(Math.abs(ySteps), acumNumberY);
 			    		setCurrentPosY(currentPos.y-(ySteps*stepDistanceTHUnitY));
@@ -374,18 +376,28 @@ public class Machine {
 	}
 	
 	public void onSerialReceived(String str) {
-		if(str.equals("Y")) {
-			modeler.mainUI.btnLeft.setBackground(Color.CYAN);
-			modeler.mainUI.btnRight.setBackground(Color.CYAN);
-			modeler.mainUI.btnFront.setBackground(Color.CYAN);
-			modeler.mainUI.btnBack.setBackground(Color.CYAN);
+		if(str.equals("Y") || str.equals("H")) {
+			String st;
+			
+			if(str.equals("Y")) {
+				st = "Front-Back OK";
+				modeler.mainUI.btnFront.setBackground(Color.CYAN);
+				modeler.mainUI.btnBack.setBackground(Color.CYAN);
+			} else {
+				st = "Left-Right OK";
+				modeler.mainUI.btnLeft.setBackground(Color.CYAN);
+				modeler.mainUI.btnRight.setBackground(Color.CYAN);
+			}
+			
+			
 			
 			if(receivedOK == 0) {
-				System.out.println("OK 1 received");
+				System.out.println(st+" (1 received)");
 				
 				receivedOK++;
 			} else if(receivedOK == 1) {
-				System.out.println("OK 2 received. Go next...");
+				System.out.println(st+" (2 received. Go next...)");
+				System.out.println();
 								
 				receivedOK = 0;
 				movementXY_callback.run();
@@ -401,6 +413,8 @@ public class Machine {
 	
 	// STACK OF MOVEMENTS
 	public void execStackMovements() {
+		System.out.println("Executing stack...");
+		
 		executingStackCanvasMovements = true;	
 		stackMovements.resetMovementStack();
 		
@@ -447,7 +461,7 @@ public class Machine {
 				if(stackMovements.isStartTraceValues.get(0).equals("2") ||
 					stackMovements.isStartTraceValues.get(0).equals("1")) {	
 					// current position is normal (1) or start (2)
-					System.out.println("Start of target "+currentStackId);
+					//System.out.println("Start of target "+currentStackId);
 										
 					if(stackMovements.isStartTraceValues.get(0+1).equals("1")) {
 						// target position is normal (1). Must be down now	
