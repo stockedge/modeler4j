@@ -23,28 +23,27 @@ public class Machine {
 	// Luego bajar el lapiz hasta que toque la superficie a pintar
 	
 	// 5. StormModeler: Indicamos en Initial position el punto XY en el que se encuentra el rotulador, que sería 0,0
-	//	y fijamos 20 para el eje z (bajara a 0 cuando esciba y subirá a 40 cuando no escriba)
+	//	y fijamos 0 para el eje z (bajara a 0 cuando esciba y subirá a 80 cuando no escriba)
 	
 	// 6. StormModeler: File > Open y seleccionamos el fichero Gerber.
 	
-	// 7. StormModeler: Pulsar Run. Este se dirigirá automáticamente hacia el origen del primer trazo. (subirá 20 al comienzo al ser el origen de un trazo)
-	// Una vez llegue bajará 40 pasos comenzando así la serie de trazados.
+	// 7. StormModeler: Pulsar Run. Este se dirigirá automáticamente hacia el origen del primer trazo. (subirá 80 al comienzo al dirigirse hacia el origen de un trazo)
+	// Una vez llegue bajará 80 pasos comenzando así la serie de trazados.
 	
 	
-	// - Para calibrar la maquina se dispone antes en los pic XY el máximo MIN_DELAY que se pueda conseguir.
-	// - Fijar en cada pic un "un step" como una secuencia de multiples pasos
+	// - Para calibrar la maquina se dispone en los PICs XY el MAX_DELAY/MIN_DELAY (cuando solo mueve un eje) y el CON_DELAY (cuando se mueven los 2 ejes a 45º)
 	// - Luego en este codigo se fija las variables stepsForX,stepsForY,distanceCMwith_stepsForX,distanceCMwith_stepsForY con los resultados obtenidos
 	// tras hacer un recorrido largo con ambos ejes.
 	// - Luego para ajustar la velocidad de los ejes mutuamente (para poder dibujar una linea con angulo de 45 ambos a la misma velocidad)
-	// se abre el archivo linea45grados de proteus (asegurarse que ocupe la minima diagonal de ambos ejes) y se ejecuta
-	// deberemos de ajustar para que terminen el recorrido de 45 grados ambos a la vez. Para ello ajustamos de nuevo el MIN_DELAY del eje
+	// se abre el archivo linea45grados de proteus (asegurarse que ocupe la minima diagonal de ambos ejes) y se ejecuta.
+	// Debemos de ajustar CON_DELAY para que terminen el recorrido de 45 grados ambos a la vez. Para ello ajustamos de nuevo el CON_DELAY del eje
 	// que llega antes, aumentando su valor y que viendo vaya terminando cada vez más tarde.
 	
-	// El firmware utilizado en este caso personal son los siguientes:
+	// El firmware utilizado en este caso son los siguientes:
 	// MINEBEA-17PM-K-041-P1F-XC8 PARA EL EJE Y
 	// MITSUMI_M49SP-1-XC8 PARA EL EJE X
 	// BIPOLAR-STORM-MODELER-EJEZ-XC8 PARA EL EJE Z
-	// Solo hay que fijar las variables para X e Y. El Eje Z va directamente desde el paso 0 (parte más baja) al paso 40 (parte más alta)
+	// Solo hay que fijar las variables para X e Y. El Eje Z va directamente desde el paso 0 (parte más baja) al paso 80 (parte más alta)
 	
 	// El algoritmo implementado actualmente en este programa es para la realización de trazados con un rotulador a partir de un fichero gerber
 	
@@ -65,9 +64,9 @@ public class Machine {
 	public float penDiameterTH = 20f; 
 		
 	public Vector2f currentPos = new Vector2f(0f, 0f);		
-	public final Float upPosZ = 40f;
+	public final Float upPosZ = 80f;
 	public final Float downPosZ = 0f;
-	public Float currentPosZ = upPosZ-20f;
+	public Float currentPosZ = downPosZ;
 		
 	private Vector2f targetPos = new Vector2f(0f, 0f);
 	public boolean viewInMM = false;
@@ -144,70 +143,60 @@ public class Machine {
 	}
 	
 	
-	public void stepsLeftCommand(int steps, int acumStepNumber) {
-		String cmd = "^"+steps+"L"+acumStepNumber+"M$";
-		System.out.println("SEND LEFT... "+cmd);
-		modeler.mainUI.btnLeft.setBackground(Color.ORANGE);
+	private void sendSerial(String cmd) {
 		try {
 			modeler.serial.sendSerial(cmd);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public void stepsLeftCommand(int steps, int acumStepNumber) {
+		modeler.mainUI.btnLeft.setBackground(Color.ORANGE);
+		
+		String cmd = "^"+steps+"L"+acumStepNumber+"M$";
+		System.out.println("SEND LEFT... "+cmd);		
+		sendSerial(cmd);
 	}
 	
 	public void stepsRightCommand(int steps, int acumStepNumber) {
-		String cmd = "^"+steps+"R"+acumStepNumber+"M$";
-		System.out.println("SEND RIGHT... "+cmd);
 		modeler.mainUI.btnRight.setBackground(Color.ORANGE);
-		try {
-			modeler.serial.sendSerial(cmd);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		
+		String cmd = "^"+steps+"R"+acumStepNumber+"M$";
+		System.out.println("SEND RIGHT... "+cmd);		
+		sendSerial(cmd);
 	}
 	
 	public void stepsFrontCommand(int steps, int acumStepNumber) {
-		String cmd = "^"+steps+"F"+acumStepNumber+"M$";
-		System.out.println("SEND FRONT... "+cmd);
 		modeler.mainUI.btnFront.setBackground(Color.ORANGE);
-		try {
-			modeler.serial.sendSerial(cmd);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		
+		String cmd = "^"+steps+"F"+acumStepNumber+"M$";
+		System.out.println("SEND FRONT... "+cmd);		
+		sendSerial(cmd);
 	}
 	
 	public void stepsBackCommand(int steps, int acumStepNumber) {
-		String cmd = "^"+steps+"B"+acumStepNumber+"M$";
-		System.out.println("SEND BACK... "+cmd);
 		modeler.mainUI.btnBack.setBackground(Color.ORANGE);
-		try {
-			modeler.serial.sendSerial(cmd);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		
+		String cmd = "^"+steps+"B"+acumStepNumber+"M$";
+		System.out.println("SEND BACK... "+cmd);		
+		sendSerial(cmd);
 	}
 	
 	public void stepsUpCommand(int steps, int acumStepNumber) {
-		String cmd = "^"+steps+"U"+acumStepNumber+"M$";
-		System.out.println("SEND UP... "+cmd);
 		modeler.mainUI.btnUp.setBackground(Color.ORANGE);
-		try {
-			modeler.serial.sendSerial(cmd);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		
+		String cmd = "^"+steps+"U"+acumStepNumber+"M$";
+		System.out.println("SEND UP... "+cmd);		
+		sendSerial(cmd);
 	}
 	
 	public void stepsDownCommand(int steps, int acumStepNumber) {
-		String cmd = "^"+steps+"D"+acumStepNumber+"M$";
-		System.out.println("SEND DOWN... "+cmd);
 		modeler.mainUI.btnDown.setBackground(Color.ORANGE);
-		try {
-			modeler.serial.sendSerial(cmd);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+		
+		String cmd = "^"+steps+"D"+acumStepNumber+"M$";
+		System.out.println("SEND DOWN... "+cmd);		
+		sendSerial(cmd);
 	}
 		
 	public void makeMovementZ(final int upOrDown, Runnable c) {
@@ -224,16 +213,16 @@ public class Machine {
 		            	if(currentPosZ>downPosZ) {
 				    		// down
 		            		s = Math.round(currentPosZ-downPosZ);
-		            		stepsDownCommand(s, STEP_ACUM_MAX);
+		            		stepsDownCommand(s, STEP_ACUM_MAX-1);
 		            		setCurrentPosZ(currentPosZ-s);
 		            	} else {
 				    		// up
 		            		s = Math.round(downPosZ-currentPosZ);
-				    		stepsUpCommand(s, STEP_ACUM_MAX);
+				    		stepsUpCommand(s, STEP_ACUM_MAX-1);
 				    		setCurrentPosZ(currentPosZ+s);
 		            	}
 		            	
-		            	timer = new Timer (s*20, new ActionListener () { 
+		            	timer = new Timer (s*40, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 	
@@ -253,16 +242,16 @@ public class Machine {
 				    	if(currentPosZ>upPosZ) {				    		
 				    		// down
 		            		s = Math.round(currentPosZ-upPosZ);
-				    		stepsDownCommand(s, STEP_ACUM_MAX);
+				    		stepsDownCommand(s, STEP_ACUM_MAX-1);
 				    		setCurrentPosZ(currentPosZ-s);
 				    	} else {
 				    		// up
 				    		s = Math.round(upPosZ-currentPosZ);
-				    		stepsUpCommand(s, STEP_ACUM_MAX);
+				    		stepsUpCommand(s, STEP_ACUM_MAX-1);
 				    		setCurrentPosZ(currentPosZ+s);
 				    	}
 				    	
-				    	timer = new Timer (s*20, new ActionListener () { 
+				    	timer = new Timer (s*40, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 
@@ -324,10 +313,10 @@ public class Machine {
 		acumNumberY = STEP_ACUM_MAX;
 		if(xLength > yLength) {
 			float dd = yLength/xLength; 
-			acumNumberY = Math.round(dd*STEP_ACUM_MAX*(1.0f));
+			acumNumberY = Math.round(dd*STEP_ACUM_MAX);
 		} else if(yLength > xLength) {
 			float dd = xLength/yLength;
-			acumNumberX = Math.round(dd*STEP_ACUM_MAX*((stepsForX/stepsForY)));
+			acumNumberX = Math.round(dd*STEP_ACUM_MAX);
 		}
 		if(xLength > 3f && acumNumberY == STEP_ACUM_MAX)
 			acumNumberY--;
@@ -443,10 +432,17 @@ public class Machine {
 			makeMovementZ(1, new Thread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	makeMovementXY(stackMovements.xValues.get(0), stackMovements.yValues.get(0), new Thread(new Runnable() {
+			    	makeMovementXY(currentPos.x, stackMovements.yValues.get(0), new Thread(new Runnable() {
 						@Override
 					    public void run() {	
-							nextStackMovement();	
+
+							makeMovementXY(stackMovements.xValues.get(0), currentPos.y, new Thread(new Runnable() {
+								@Override
+							    public void run() {	
+									nextStackMovement();	
+								}
+							}));
+							
 						}
 					}));	
 			    }
@@ -483,11 +479,18 @@ public class Machine {
 						makeMovementZ(1, new Thread(new Runnable() {
 						    @Override
 						    public void run() {
-						    	makeMovementXY(stackMovements.xValues.get(0+1), stackMovements.yValues.get(0+1), new Thread(new Runnable() {
+						    	makeMovementXY(currentPos.x, stackMovements.yValues.get(0+1), new Thread(new Runnable() {
 									@Override
 								    public void run() {	
-										shiftMovementFromStack();
-										nextStackMovement(); // get new movement from stack
+
+										makeMovementXY(stackMovements.xValues.get(0+1), currentPos.y, new Thread(new Runnable() {
+											@Override
+										    public void run() {	
+												shiftMovementFromStack();
+												nextStackMovement(); // get new movement from stack
+											}
+										}));	
+										
 									}
 								}));	
 						    }
