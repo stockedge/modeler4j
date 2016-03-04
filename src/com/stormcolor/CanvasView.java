@@ -8,7 +8,7 @@ import java.awt.Graphics2D;
 public class CanvasView extends Canvas {
 	private Modeler modeler;
 	
-	public CanvasView(Modeler modeler) {		
+	public CanvasView(Modeler modeler) {
 		this.modeler = modeler;
 	}
 	
@@ -17,6 +17,6 @@ public class CanvasView extends Canvas {
 		setBackground(Color.BLACK);
 				
 		Graphics2D g2D = (Graphics2D)g;
-		modeler.drawCanvas(g2D);
+		modeler.mainUI.drawCanvas(g2D);
 	}
 }

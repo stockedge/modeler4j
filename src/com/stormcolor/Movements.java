@@ -2,15 +2,13 @@ package src.com.stormcolor;
 
 import java.util.ArrayList;
 
-public class Movements {
-	private Modeler modeler;
-	
+public class Movements {	
 	public ArrayList<Float> xValues = new ArrayList<Float>();
 	public ArrayList<Float> yValues = new ArrayList<Float>();
 	public ArrayList<String> isStartTraceValues = new ArrayList<String>();	// string 2 is start of trace
 	
-	public Movements(Modeler modeler) {		
-		this.modeler = modeler;
+	public Movements() {		
+		
 	}
 	
 	public void addMovementToStack(Float xVal, Float yVal, String isStartTraceValues) { 
@@ -77,9 +75,6 @@ public class Movements {
 		
 		xValues = xValuesTMP;
 		yValues = yValuesTMP;
-		isStartTraceValues = isStartTraceValuesTMP;
-		modeler.updateCanvas();
-		modeler.updateUIMovementList();
-		System.out.println("Optimization OK");
+		isStartTraceValues = isStartTraceValuesTMP;		
 	}
 }

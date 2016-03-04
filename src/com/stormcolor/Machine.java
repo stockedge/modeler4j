@@ -73,6 +73,7 @@ public class Machine {
 	private Timer timer;
 	private Timer timerTMPX;
 	private Timer timerTMPY;
+	private Timer timerTM;
 	private float xLength;
 	private float yLength;
 	private int xSteps;
@@ -85,21 +86,22 @@ public class Machine {
 	
 	public Movements stackMovements;
 	public boolean executingStackCanvasMovements = false;
-	public int currentStackId = 0;
-	private int receivedOK = 0;
+	public Integer currentStackId = 0;
+	private int receivedFB = 0;
+	private int receivedLR = 0;
 	
-	private Runnable movementXY_callback;
-	private Runnable movementZ_callback;
+	Runnable[] arrRunnables = new Runnable[30];
+	private int arrRunnablesLength = 0;
 	private Float rad = (3.1416f*2f)/12f;
 	
 	public Machine(Modeler modeler) {		
 		this.modeler = modeler;
-		stackMovements = new Movements(this.modeler);
+		stackMovements = new Movements();
 	}
 	
 	public void setCurrentPosX(Float x) {
 		currentPos.x = x;
-		modeler.updateCurrentPos_GUI();
+		modeler.mainUI.updateCurrentPos_GUI();
 	}
 	
 	public Float getCurrentPosX() {
@@ -108,7 +110,7 @@ public class Machine {
 
 	public void setCurrentPosY(Float y) {
 		currentPos.y = y;
-		modeler.updateCurrentPos_GUI();
+		modeler.mainUI.updateCurrentPos_GUI();
 	}
 	
 	public Float getCurrentPosY() {
@@ -117,7 +119,7 @@ public class Machine {
 
 	public void setCurrentPosZ(Float z) {
 		currentPosZ = z;
-		modeler.updateCurrentPos_GUI();
+		modeler.mainUI.updateCurrentPos_GUI();
 	}
 	
 	public Float getCurrentPosZ() {
@@ -126,7 +128,7 @@ public class Machine {
 	
 	public void setPenDiameter(Float d) {
 		penDiameterTH = d;		
-		modeler.updateCurrentPos_GUI();
+		modeler.mainUI.updateCurrentPos_GUI();
 	}
 	
 	public Float getPenDiameter() {
@@ -199,8 +201,8 @@ public class Machine {
 		sendSerial(cmd);
 	}
 		
-	public void makeMovementZ(final int upOrDown, Runnable c) {
-		movementZ_callback = c;
+	public void makeMovementZ(final int upOrDown, Runnable runnable) {
+		addRunnable(runnable);
 			
 		timer = new Timer (0, new ActionListener () { 
 			public void actionPerformed(ActionEvent e) { 
@@ -222,18 +224,16 @@ public class Machine {
 				    		setCurrentPosZ(currentPosZ+s);
 		            	}
 		            	
-		            	timer = new Timer (s*40, new ActionListener () { 
+		            	timer = new Timer (s*60, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 	
-						    	movementZ_callback.run();
-						    	//movementZ_callback = null;
+						    	runRunnables();
 						    } 
 						});
 						timer.start();
 					} else {
-						movementZ_callback.run();
-				    	//movementZ_callback = null;
+						runRunnables();
 					}
 				} else {
 					// set up
@@ -251,18 +251,16 @@ public class Machine {
 				    		setCurrentPosZ(currentPosZ+s);
 				    	}
 				    	
-				    	timer = new Timer (s*40, new ActionListener () { 
+				    	timer = new Timer (s*60, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 
-								movementZ_callback.run();
-						    	//movementZ_callback = null;
+						    	runRunnables();
 						    } 
 						});
 						timer.start();
 					} else {
-						movementZ_callback.run();
-				    	//movementZ_callback = null;
+						runRunnables();
 					}
 				}
 				 	
@@ -271,8 +269,8 @@ public class Machine {
 		timer.start();
 	}
 	
-	public void makeMovementXY(float x, float y, Runnable c) {
-		movementXY_callback = c;
+	public void makeMovementXY(float x, float y, Runnable runnable) {
+		addRunnable(runnable);
 		
 		targetPos = new Vector2f(x, y);
 		modeler.mainUI.TargetPosX.setText((viewInMM)?Float.toString(targetPos.x*mm2th)+"mm":Float.toString(targetPos.x)+"th");
@@ -370,35 +368,64 @@ public class Machine {
 			
 			if(str.equals("Y")) {
 				st = "Front-Back OK";
+				System.out.println(st);
+				
 				modeler.mainUI.btnFront.setBackground(Color.CYAN);
 				modeler.mainUI.btnBack.setBackground(Color.CYAN);
+				
+				receivedFB = 1;
 			} else {
 				st = "Left-Right OK";
+				System.out.println(st);
+				
 				modeler.mainUI.btnLeft.setBackground(Color.CYAN);
 				modeler.mainUI.btnRight.setBackground(Color.CYAN);
+				
+				receivedLR = 1;
 			}
 			
-			
-			
-			if(receivedOK == 0) {
-				System.out.println(st+" (1 received)");
-				
-				receivedOK++;
-			} else if(receivedOK == 1) {
-				System.out.println(st+" (2 received. Go next...)");
+						
+			if(receivedFB == 1 && receivedLR == 1) {
+				System.out.println("Next...");
 				System.out.println();
+				
+				receivedFB = 0;
+				receivedLR = 0;
 								
-				receivedOK = 0;
-				movementXY_callback.run();
-				//movementXY_callback = null;				
+				runRunnables();
 			}
 		}
 	} 
 	
+	public void addRunnable(Runnable runnable) {
+		arrRunnables[arrRunnablesLength] = runnable;
+		arrRunnablesLength++;
+		System.out.println(arrRunnablesLength+" in stack");
+	}
+	
+	public void runRunnables() {
+		timerTM = new Timer (10, new ActionListener () { 
+		    public void actionPerformed(ActionEvent e) { 
+		    	timerTM.stop();
+		    	
+		    	arrRunnables[0].run();
+				
+				
+				Runnable arrRunnablesTMP[] = new Runnable[30];
+				for(int n=1; n < arrRunnablesTMP.length; n++) {
+					arrRunnablesTMP[n-1] = arrRunnables[n];
+				}
+				arrRunnables = arrRunnablesTMP;
+				arrRunnablesLength--;
+            } 
+		});	
+		timerTM.start();
+	}
 	
 	
-	
-	
+	public void setCurrentStackId(int id) {
+		currentStackId = id;
+	}
 	
 	// STACK OF MOVEMENTS
 	public void execStackMovements() {
@@ -407,18 +434,19 @@ public class Machine {
 		executingStackCanvasMovements = true;	
 		stackMovements.resetMovementStack();
 		
-		stackMovements.xValues = modeler.stackCanvasMovements.xValues;
-		stackMovements.yValues = modeler.stackCanvasMovements.yValues;
-		stackMovements.isStartTraceValues = modeler.stackCanvasMovements.isStartTraceValues;				
-		currentStackId = 0;		
-		receivedOK = 0;
+		stackMovements.xValues = modeler.mainUI.stackCanvasMovements.xValues;
+		stackMovements.yValues = modeler.mainUI.stackCanvasMovements.yValues;
+		stackMovements.isStartTraceValues = modeler.mainUI.stackCanvasMovements.isStartTraceValues;				
+		//currentStackId = 0;		
+		receivedFB = 0;
+		receivedLR = 0;
 		
-		if(stackMovements.isStartTraceValues.get(0).equals("1")) {
+		if(stackMovements.isStartTraceValues.get(currentStackId).equals("1")) {
 			// target position is normal (1). Must be down now	
 			makeMovementZ(0, new Thread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	makeMovementXY(stackMovements.xValues.get(0), stackMovements.yValues.get(0), new Thread(new Runnable() {
+			    	makeMovementXY(stackMovements.xValues.get(currentStackId), stackMovements.yValues.get(currentStackId), new Thread(new Runnable() {
 						@Override
 					    public void run() {	
 							nextStackMovement();	
@@ -426,17 +454,17 @@ public class Machine {
 					}));	
 			    }
 			}));
-		} else if(stackMovements.isStartTraceValues.get(0).equals("2") ||
-				stackMovements.isStartTraceValues.get(0).equals("3")) {
+		} else if(stackMovements.isStartTraceValues.get(currentStackId).equals("2") ||
+				stackMovements.isStartTraceValues.get(currentStackId).equals("3")) {
 			// target position is start (2) or drill hole (3). Must be up now	
 			makeMovementZ(1, new Thread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	makeMovementXY(currentPos.x, stackMovements.yValues.get(0), new Thread(new Runnable() {
+			    	makeMovementXY(currentPos.x, stackMovements.yValues.get(currentStackId), new Thread(new Runnable() {
 						@Override
 					    public void run() {	
 
-							makeMovementXY(stackMovements.xValues.get(0), currentPos.y, new Thread(new Runnable() {
+							makeMovementXY(stackMovements.xValues.get(currentStackId), currentPos.y, new Thread(new Runnable() {
 								@Override
 							    public void run() {	
 									nextStackMovement();	
@@ -454,17 +482,17 @@ public class Machine {
 		if(executingStackCanvasMovements) {
 			if(stackMovements.getStackMovementSize() > 0) {
 				
-				if(stackMovements.isStartTraceValues.get(0).equals("2") ||
-					stackMovements.isStartTraceValues.get(0).equals("1")) {	
+				if(stackMovements.isStartTraceValues.get(currentStackId).equals("2") ||
+					stackMovements.isStartTraceValues.get(currentStackId).equals("1")) {	
 					// current position is normal (1) or start (2)
 					//System.out.println("Start of target "+currentStackId);
 										
-					if(stackMovements.isStartTraceValues.get(0+1).equals("1")) {
+					if(stackMovements.isStartTraceValues.get(currentStackId+1).equals("1")) {
 						// target position is normal (1). Must be down now	
 						makeMovementZ(0, new Thread(new Runnable() {
 						    @Override
 						    public void run() {
-						    	makeMovementXY(stackMovements.xValues.get(0+1), stackMovements.yValues.get(0+1), new Thread(new Runnable() {
+						    	makeMovementXY(stackMovements.xValues.get(currentStackId+1), stackMovements.yValues.get(currentStackId+1), new Thread(new Runnable() {
 									@Override
 								    public void run() {	
 										shiftMovementFromStack();
@@ -473,17 +501,17 @@ public class Machine {
 								}));	 
 						    }
 						}));
-					} else if(stackMovements.isStartTraceValues.get(0+1).equals("2") ||
-							stackMovements.isStartTraceValues.get(0+1).equals("3")) {
+					} else if(stackMovements.isStartTraceValues.get(currentStackId+1).equals("2") ||
+							stackMovements.isStartTraceValues.get(currentStackId+1).equals("3")) {
 						// target position is start (2) or drill hole (3). Must be up now	
 						makeMovementZ(1, new Thread(new Runnable() {
 						    @Override
 						    public void run() {
-						    	makeMovementXY(currentPos.x, stackMovements.yValues.get(0+1), new Thread(new Runnable() {
+						    	makeMovementXY(currentPos.x, stackMovements.yValues.get(currentStackId+1), new Thread(new Runnable() {
 									@Override
 								    public void run() {	
 
-										makeMovementXY(stackMovements.xValues.get(0+1), currentPos.y, new Thread(new Runnable() {
+										makeMovementXY(stackMovements.xValues.get(currentStackId+1), currentPos.y, new Thread(new Runnable() {
 											@Override
 										    public void run() {	
 												shiftMovementFromStack();
@@ -496,7 +524,7 @@ public class Machine {
 						    }
 						}));
 					}				
-				} else if(stackMovements.isStartTraceValues.get(0).equals("3")) {
+				} else if(stackMovements.isStartTraceValues.get(currentStackId).equals("3")) {
 					// current position is drill hole (3)
 					System.out.println("Start of target "+currentStackId);
 					
@@ -528,7 +556,7 @@ public class Machine {
 							} else {
 								Float rBx = (float) Math.cos(rad*(currentDrill+1f))*20f;
 					    		Float rBy = (float) Math.sin(rad*(currentDrill+1f))*20f;
-								makeMovementXY(	(stackMovements.xValues.get(0)+rBx), (stackMovements.yValues.get(0)+rBy), new Thread(new Runnable() {
+								makeMovementXY(	(stackMovements.xValues.get(currentStackId)+rBx), (stackMovements.yValues.get(currentStackId)+rBy), new Thread(new Runnable() {
 									@Override
 								    public void run() {	
 										currentDrill += 1f;
@@ -557,7 +585,7 @@ public class Machine {
 	}
 	
 	public void shiftMovementFromStack() {
-		ArrayList<Float> xValuesTMP = new ArrayList<Float>();
+		/*ArrayList<Float> xValuesTMP = new ArrayList<Float>();
 		ArrayList<Float> yValuesTMP = new ArrayList<Float>();
 		ArrayList<String> isStartTraceValuesTMP = new ArrayList<String>();
 		for(int n=1; n < stackMovements.getStackMovementSize(); n++) {
@@ -567,8 +595,10 @@ public class Machine {
 		}		
 		stackMovements.xValues = xValuesTMP;
 		stackMovements.yValues = yValuesTMP;
-		stackMovements.isStartTraceValues = isStartTraceValuesTMP;
+		stackMovements.isStartTraceValues = isStartTraceValuesTMP;*/
+		
 		currentStackId++;
-		modeler.updateUIMovementList();
+		modeler.mainUI.updateUIMovementList();
+		modeler.mainUI.execStartId.setText(currentStackId.toString());
 	}
 }
