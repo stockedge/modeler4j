@@ -224,7 +224,7 @@ public class Machine {
 				    		setCurrentPosZ(currentPosZ+s);
 		            	}
 		            	
-		            	timer = new Timer (s*60, new ActionListener () { 
+		            	timer = new Timer (s*40, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 	
@@ -251,7 +251,7 @@ public class Machine {
 				    		setCurrentPosZ(currentPosZ+s);
 				    	}
 				    	
-				    	timer = new Timer (s*60, new ActionListener () { 
+				    	timer = new Timer (s*40, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 
