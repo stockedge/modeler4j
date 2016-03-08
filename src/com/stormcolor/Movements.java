@@ -29,8 +29,13 @@ public class Movements {
 	
 	public void optimizeStack() {
 		ArrayList<Boolean> idsProccessed = new ArrayList<Boolean>();
+		int startsCount = 0;
+		int startsProccessed = 0;
+		
 		for(int n=0; n < xValues.size(); n++) {
 			idsProccessed.add(false);
+			if(isStartTraceValues.get(n).equals("2"))
+				startsCount++;
 		}
 		ArrayList<Float> xValuesTMP = new ArrayList<Float>();
 		ArrayList<Float> yValuesTMP = new ArrayList<Float>();
@@ -40,37 +45,56 @@ public class Movements {
 		Float x = 0f;
 		Float y = 0f;
 		while(true) {
-			int nearId = 0;
+			int currentId = 0;
 			Float nearDist = 1000000f;
 			for(int n=0; n < xValues.size(); n++) {
 				if(isStartTraceValues.get(n).equals("2") && idsProccessed.get(n).equals(false)) {
 					Float distTo = Math.abs(xValues.get(n)-x) + Math.abs(yValues.get(n)-y);
 					if(distTo <= nearDist) {
 						nearDist = distTo;
-						nearId = n;
+						currentId = n;
 					}
 				}
 			}
+			startsProccessed++;
 			
 			while(true) {
-				if((nearId) < xValues.size()) {
-					xValuesTMP.add(xValues.get(nearId));
-					yValuesTMP.add(yValues.get(nearId));
-					isStartTraceValuesTMP.add(isStartTraceValues.get(nearId));
-					idsProccessed.set(nearId, true);
-					x = xValues.get(nearId);
-					y = yValues.get(nearId);
-					nearId++;
-					if((nearId) < xValues.size() && isStartTraceValues.get(nearId).equals("2")) break;
+				if((currentId) < xValues.size()) {
+					xValuesTMP.add(xValues.get(currentId));
+					yValuesTMP.add(yValues.get(currentId));
 					
-				} else break;
+					idsProccessed.set(currentId, true);					
+					x = xValues.get(currentId);
+					y = yValues.get(currentId);
+					if(currentId > 0 && (x == xValues.get(currentId-1) && y == yValues.get(currentId-1))) {
+						isStartTraceValuesTMP.add("1");
+					} else {
+						isStartTraceValuesTMP.add(isStartTraceValues.get(currentId));
+					}
+					currentId++;
+					
+					
+					if(currentId < xValues.size()) {
+						if( (isStartTraceValues.get(currentId).equals("2") && (xValues.get(currentId)!=x || yValues.get(currentId)!=y)) ||
+							isStartTraceValues.get(currentId).equals("3") ) {							
+							break;
+						} else {
+							for(int nb=0; nb < xValues.size(); nb++) {
+								if( (isStartTraceValues.get(nb).equals("2") || isStartTraceValues.get(nb).equals("1")) && (xValues.get(nb)==x && yValues.get(nb)==y) && idsProccessed.get(nb).equals(false)) {	
+									currentId = nb;
+									break; // break for
+								}
+							}
+						}
+					} else {
+						break;
+					}
+				} else {
+					break;
+				}
 			}
 			
-			boolean allProcess = true;
-			for(int n=0; n < idsProccessed.size(); n++) {
-				if(idsProccessed.get(n).equals(false)) allProcess = false;
-			}
-			if(allProcess) break;
+			if(startsProccessed == startsCount) break;
 		}
 		
 		xValues = xValuesTMP;

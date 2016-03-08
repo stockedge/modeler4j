@@ -53,6 +53,11 @@ public class Machine {
 	private final float distanceCMwith_stepsForX = 13.55f;
 	private final float distanceCMwith_stepsForY = 12.0f;
 	
+	private final int loosenessStepsByDirChangeX = 0;
+	private final int loosenessStepsByDirChangeY = 3000;
+	private String oldDirX = "LEFT";
+	private String oldDirY = "FRONT";
+	
 	// private variables
 	private final float stepDistanceMMUnitX = (distanceCMwith_stepsForX*10f)/stepsForX;
 	private final float stepDistanceMMUnitY = (distanceCMwith_stepsForY*10f)/stepsForY;
@@ -63,7 +68,8 @@ public class Machine {
 	
 	public float penDiameterTH = 20f; 
 		
-	public Vector2f currentPos = new Vector2f(0f, 0f);		
+	public Vector2f currentPos = new Vector2f(0f, 0f);
+	public Vector2f currentPosTMP = new Vector2f(0f, 0f);
 	public final Float upPosZ = 80f;
 	public final Float downPosZ = 0f;
 	public Float currentPosZ = downPosZ;
@@ -81,8 +87,8 @@ public class Machine {
 	public int STEP_ACUM_MAX = 65535;
 	private int acumNumberX = STEP_ACUM_MAX;
 	private int acumNumberY = STEP_ACUM_MAX;
-	private float lastDifferenceX = 0f;
-	private float lastDifferenceY = 0f;
+	private float offsetX = 0f;
+	private float offsetY = 0f;
 	
 	public Movements stackMovements;
 	public boolean executingStackCanvasMovements = false;
@@ -139,8 +145,8 @@ public class Machine {
 		if(timer != null) timer.stop();
 		xSteps = 0;
 		ySteps = 0;
-		lastDifferenceX = 0f;
-		lastDifferenceY = 0f;
+		offsetX = 0f;
+		offsetY = 0f;
 		executingStackCanvasMovements = false;
 	}
 	
@@ -156,6 +162,10 @@ public class Machine {
 	public void stepsLeftCommand(int steps, int acumStepNumber) {
 		modeler.mainUI.btnLeft.setBackground(Color.ORANGE);
 		
+		if(oldDirX.equals("RIGHT"))
+			steps += loosenessStepsByDirChangeX;
+		oldDirX = "LEFT";
+				
 		String cmd = "^"+steps+"L"+acumStepNumber+"M$";
 		System.out.println("SEND LEFT... "+cmd);		
 		sendSerial(cmd);
@@ -163,6 +173,10 @@ public class Machine {
 	
 	public void stepsRightCommand(int steps, int acumStepNumber) {
 		modeler.mainUI.btnRight.setBackground(Color.ORANGE);
+		
+		if(oldDirX.equals("LEFT"))
+			steps += loosenessStepsByDirChangeX;
+		oldDirX = "RIGHT";
 		
 		String cmd = "^"+steps+"R"+acumStepNumber+"M$";
 		System.out.println("SEND RIGHT... "+cmd);		
@@ -172,6 +186,10 @@ public class Machine {
 	public void stepsFrontCommand(int steps, int acumStepNumber) {
 		modeler.mainUI.btnFront.setBackground(Color.ORANGE);
 		
+		if(oldDirY.equals("BACK"))
+			steps += loosenessStepsByDirChangeY;
+		oldDirY = "FRONT";
+		
 		String cmd = "^"+steps+"F"+acumStepNumber+"M$";
 		System.out.println("SEND FRONT... "+cmd);		
 		sendSerial(cmd);
@@ -179,6 +197,10 @@ public class Machine {
 	
 	public void stepsBackCommand(int steps, int acumStepNumber) {
 		modeler.mainUI.btnBack.setBackground(Color.ORANGE);
+		
+		if(oldDirY.equals("FRONT"))
+			steps += loosenessStepsByDirChangeY;
+		oldDirY = "BACK";
 		
 		String cmd = "^"+steps+"B"+acumStepNumber+"M$";
 		System.out.println("SEND BACK... "+cmd);		
@@ -189,7 +211,13 @@ public class Machine {
 		modeler.mainUI.btnUp.setBackground(Color.ORANGE);
 		
 		String cmd = "^"+steps+"U"+acumStepNumber+"M$";
-		System.out.println("SEND UP... "+cmd);		
+		System.out.println("");
+		System.out.println("");
+		System.out.println("");
+		System.out.println("►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►");
+		System.out.println("►►►►►►►►►►►►►►►►►►►►►►►► UP ►►►►►►►►►►►►►►►►►►►►►►► "+cmd);
+		System.out.println("►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►");
+		System.out.println("");
 		sendSerial(cmd);
 	}
 	
@@ -197,7 +225,13 @@ public class Machine {
 		modeler.mainUI.btnDown.setBackground(Color.ORANGE);
 		
 		String cmd = "^"+steps+"D"+acumStepNumber+"M$";
-		System.out.println("SEND DOWN... "+cmd);		
+		System.out.println("");
+		System.out.println("");
+		System.out.println("");
+		System.out.println("►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►");
+		System.out.println("►►►►►►►►►►►►►►►►►►►►►►►► DOWN ►►►►►►►►►►►►►►►►►►►►►►► "+cmd);
+		System.out.println("►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►►");
+		System.out.println("");
 		sendSerial(cmd);
 	}
 		
@@ -224,7 +258,7 @@ public class Machine {
 				    		setCurrentPosZ(currentPosZ+s);
 		            	}
 		            	
-		            	timer = new Timer (s*40, new ActionListener () { 
+		            	timer = new Timer (s*60, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 	
@@ -251,7 +285,7 @@ public class Machine {
 				    		setCurrentPosZ(currentPosZ+s);
 				    	}
 				    	
-				    	timer = new Timer (s*40, new ActionListener () { 
+				    	timer = new Timer (s*60, new ActionListener () { 
 						    public void actionPerformed(ActionEvent e) { 
 						    	timer.stop();
 
@@ -290,23 +324,81 @@ public class Machine {
 		float xLength = vxf.length();		
 		System.out.println("- xLength "+xLength);
 		float numStepsForDisplaceX = xLength/stepDistanceTHUnitX;
-		xSteps = Math.round(numStepsForDisplaceX+lastDifferenceX);
+		xSteps = Math.round(numStepsForDisplaceX+offsetX);
 		// Y
 		float yLength = vyf.length();	
 		System.out.println("- yLength "+yLength);
 		float numStepsForDisplaceY = yLength/stepDistanceTHUnitY;
-		ySteps = Math.round(numStepsForDisplaceY+lastDifferenceY);*/
+		ySteps = Math.round(numStepsForDisplaceY+offsetY);*/
+		
+		
 		// X
-		xLength = Math.abs(targetPos.x-currentPos.x);
+		Vector2f vX = new Vector2f(targetPos.x, 0f);
+		vX.sub(new Vector2f(currentPos.x, 0f));
+		xLength = vX.length();
 		float numStepsForDisplaceX = xLength/stepDistanceTHUnitX;
-		xSteps = Math.round(numStepsForDisplaceX+lastDifferenceX);
+		float numStepsForDisplaceX_Offset = numStepsForDisplaceX;
+		
 		// Y
-		yLength = Math.abs(targetPos.y-currentPos.y);		
-		float numStepsForDisplaceY = yLength/stepDistanceTHUnitY;
-		ySteps = Math.round(numStepsForDisplaceY+lastDifferenceY);
+		Vector2f vY = new Vector2f(0f, targetPos.y);
+		vY.sub(new Vector2f(0f, currentPos.y));
+		yLength = vY.length();	
+		float numStepsForDisplaceY = yLength/stepDistanceTHUnitY;		
+		float numStepsForDisplaceY_Offset = numStepsForDisplaceY;
+				
 		
-		System.out.println("-> displacing XY (distance th: "+(xLength)+", "+(yLength)+"; steps: "+xSteps+", "+ySteps+")");
+		System.out.println("/////////////////////////////////////// Displacing XY "+currentStackId+" /////////////////////////////////////");
+		System.out.println(currentPos.x+", "+currentPos.y+" -> "+targetPos.x+", "+targetPos.y);
+		System.out.println("Distance: "+xLength+" th, "+yLength+" th");
+		System.out.println("Dist Steps: "+numStepsForDisplaceX+", "+numStepsForDisplaceY);		
+		System.out.println("Offset: "+offsetX+", "+offsetY);
 		
+		
+		// X
+		String dirXstr = "";
+		if(xLength > 0.0f) {			
+			if(targetPos.x < currentPos.x) {							
+				dirXstr = "Left";
+				numStepsForDisplaceX_Offset -= offsetX;	
+			} else {
+				dirXstr = "Right";
+				numStepsForDisplaceX_Offset += offsetX;	
+			} 				
+			System.out.println("+Off Steps X: "+numStepsForDisplaceX_Offset);
+			
+			xSteps = Math.abs(Math.round(numStepsForDisplaceX_Offset));
+			offsetX = (numStepsForDisplaceX_Offset-xSteps);					
+		} else {			
+			xSteps = 0;	
+		}
+		
+		
+		
+		// Y
+		String dirYstr = "";
+		if(yLength > 0.0f) {			
+			if(targetPos.y < currentPos.y) {				
+				dirYstr = "Front";
+				numStepsForDisplaceY_Offset -= offsetY;
+	    	} else {	    		
+	    		dirYstr = "Back";
+	    		numStepsForDisplaceY_Offset += offsetY;
+	    	}				
+			System.out.println("+Off Steps Y: "+numStepsForDisplaceY_Offset);
+			
+			ySteps = Math.abs(Math.round(numStepsForDisplaceY_Offset));
+			offsetY = (numStepsForDisplaceY_Offset-ySteps);
+		} else {			
+			ySteps = 0;		
+		}
+		
+		
+		System.out.println("Real Steps: "+xSteps+" "+dirXstr+", "+ySteps+" "+dirYstr);	
+		System.out.println("New Offset: "+offsetX+", "+offsetY);
+		System.out.println("///////////////////////////////////////");
+		
+		
+		// ACUMS
 		acumNumberX = STEP_ACUM_MAX;
 		acumNumberY = STEP_ACUM_MAX;
 		if(xLength > yLength) {
@@ -316,47 +408,53 @@ public class Machine {
 			float dd = xLength/yLength;
 			acumNumberX = Math.round(dd*STEP_ACUM_MAX);
 		}
-		if(xLength > 3f && acumNumberY == STEP_ACUM_MAX)
+		if(xSteps > 0 && acumNumberY == STEP_ACUM_MAX)
 			acumNumberY--;
-		if(yLength > 3f && acumNumberX == STEP_ACUM_MAX)
+		if(ySteps > 0 && acumNumberX == STEP_ACUM_MAX)
 			acumNumberX--;
 		
-		// X		
-		lastDifferenceX = numStepsForDisplaceX-xSteps;
 		
+		
+		
+		// X				
 		timerTMPX = new Timer (200, new ActionListener () { 
 		    public void actionPerformed(ActionEvent e) { 
 		    	timerTMPX.stop();
-		    	if(xLength > 3f) {
+		    	
+		    	currentPosTMP.x = targetPos.x;
+		    	
+		    	if(xSteps > 0) {
 					if(targetPos.x < currentPos.x) {
-						stepsLeftCommand(Math.abs(xSteps), acumNumberX);
-						setCurrentPosX(currentPos.x-(xSteps*stepDistanceTHUnitX));
+						stepsLeftCommand(Math.abs(xSteps), acumNumberX);				
 					} else {
 						stepsRightCommand(Math.abs(xSteps), acumNumberX);
-						setCurrentPosX(currentPos.x+(xSteps*stepDistanceTHUnitX));
-					} 	
-					
-		    	} else onSerialReceived("H");	
+					} 						
+		    	} else {		    		
+		    		onSerialReceived("H");	
+		    	}
 			} 
 		});	
 		timerTMPX.start();
 		
 		// Y			
-		lastDifferenceY = numStepsForDisplaceY-ySteps;
+		
 		
 		timerTMPY = new Timer (400, new ActionListener () { 
 		    public void actionPerformed(ActionEvent e) { 
 		    	timerTMPY.stop();
-		    	if(yLength > 3f) {
+		    	
+		    	currentPosTMP.y = targetPos.y;
+		    	
+		    	if(ySteps > 0) {
 			    	if(targetPos.y < currentPos.y) {
 			    		stepsFrontCommand(Math.abs(ySteps), acumNumberY);
-			    		setCurrentPosY(currentPos.y-(ySteps*stepDistanceTHUnitY));
 			    	} else {
-			    		stepsBackCommand(Math.abs(ySteps), acumNumberY);	
-			    		setCurrentPosY(currentPos.y+(ySteps*stepDistanceTHUnitY));
+			    		stepsBackCommand(Math.abs(ySteps), acumNumberY);
 			    	}	
 			    	
-		    	} else onSerialReceived("Y");
+		    	} else {		    		
+		    		onSerialReceived("Y");
+		    	}
             } 
 		});	
 		timerTMPY.start(); 
@@ -392,6 +490,9 @@ public class Machine {
 				receivedFB = 0;
 				receivedLR = 0;
 								
+				setCurrentPosX(currentPosTMP.x);
+				setCurrentPosY(currentPosTMP.y);
+				
 				runRunnables();
 			}
 		}
@@ -400,7 +501,7 @@ public class Machine {
 	public void addRunnable(Runnable runnable) {
 		arrRunnables[arrRunnablesLength] = runnable;
 		arrRunnablesLength++;
-		System.out.println(arrRunnablesLength+" in stack");
+		//System.out.println(arrRunnablesLength+" in stack");
 	}
 	
 	public void runRunnables() {
@@ -427,49 +528,26 @@ public class Machine {
 		currentStackId = id;
 	}
 	
-	// STACK OF MOVEMENTS
-	public void execStackMovements() {
-		System.out.println("Executing stack...");
-		
-		executingStackCanvasMovements = true;	
-		stackMovements.resetMovementStack();
-		
-		stackMovements.xValues = modeler.mainUI.stackCanvasMovements.xValues;
-		stackMovements.yValues = modeler.mainUI.stackCanvasMovements.yValues;
-		stackMovements.isStartTraceValues = modeler.mainUI.stackCanvasMovements.isStartTraceValues;				
-		//currentStackId = 0;		
-		receivedFB = 0;
-		receivedLR = 0;
-		
-		if(stackMovements.isStartTraceValues.get(currentStackId).equals("1")) {
+	public void procXY(final int id, final Runnable runnable) {
+		if(stackMovements.isStartTraceValues.get(id).equals("1")) {
 			// target position is normal (1). Must be down now	
 			makeMovementZ(0, new Thread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	makeMovementXY(stackMovements.xValues.get(currentStackId), stackMovements.yValues.get(currentStackId), new Thread(new Runnable() {
-						@Override
-					    public void run() {	
-							nextStackMovement();	
-						}
-					}));	
+			    	makeMovementXY(stackMovements.xValues.get(id), stackMovements.yValues.get(id), runnable);	
 			    }
 			}));
-		} else if(stackMovements.isStartTraceValues.get(currentStackId).equals("2") ||
-				stackMovements.isStartTraceValues.get(currentStackId).equals("3")) {
+		} else if(stackMovements.isStartTraceValues.get(id).equals("2") ||
+				stackMovements.isStartTraceValues.get(id).equals("3")) {
 			// target position is start (2) or drill hole (3). Must be up now	
 			makeMovementZ(1, new Thread(new Runnable() {
 			    @Override
 			    public void run() {
-			    	makeMovementXY(currentPos.x, stackMovements.yValues.get(currentStackId), new Thread(new Runnable() {
+			    	makeMovementXY(currentPos.x, stackMovements.yValues.get(id), new Thread(new Runnable() {
 						@Override
 					    public void run() {	
 
-							makeMovementXY(stackMovements.xValues.get(currentStackId), currentPos.y, new Thread(new Runnable() {
-								@Override
-							    public void run() {	
-									nextStackMovement();	
-								}
-							}));
+							makeMovementXY(stackMovements.xValues.get(id), currentPos.y, runnable);
 							
 						}
 					}));	
@@ -477,6 +555,8 @@ public class Machine {
 			}));
 		}
 	}
+	
+	
 	
 	public void nextStackMovement() {
 		if(executingStackCanvasMovements) {
@@ -486,44 +566,14 @@ public class Machine {
 					stackMovements.isStartTraceValues.get(currentStackId).equals("1")) {	
 					// current position is normal (1) or start (2)
 					//System.out.println("Start of target "+currentStackId);
-										
-					if(stackMovements.isStartTraceValues.get(currentStackId+1).equals("1")) {
-						// target position is normal (1). Must be down now	
-						makeMovementZ(0, new Thread(new Runnable() {
-						    @Override
-						    public void run() {
-						    	makeMovementXY(stackMovements.xValues.get(currentStackId+1), stackMovements.yValues.get(currentStackId+1), new Thread(new Runnable() {
-									@Override
-								    public void run() {	
-										shiftMovementFromStack();
-										nextStackMovement(); // get new movement from stack
-									}
-								}));	 
-						    }
-						}));
-					} else if(stackMovements.isStartTraceValues.get(currentStackId+1).equals("2") ||
-							stackMovements.isStartTraceValues.get(currentStackId+1).equals("3")) {
-						// target position is start (2) or drill hole (3). Must be up now	
-						makeMovementZ(1, new Thread(new Runnable() {
-						    @Override
-						    public void run() {
-						    	makeMovementXY(currentPos.x, stackMovements.yValues.get(currentStackId+1), new Thread(new Runnable() {
-									@Override
-								    public void run() {	
-
-										makeMovementXY(stackMovements.xValues.get(currentStackId+1), currentPos.y, new Thread(new Runnable() {
-											@Override
-										    public void run() {	
-												shiftMovementFromStack();
-												nextStackMovement(); // get new movement from stack
-											}
-										}));	
-										
-									}
-								}));	
-						    }
-						}));
-					}				
+					
+					procXY(currentStackId+1, new Thread(new Runnable() {
+						@Override
+					    public void run() {	
+							shiftMovementFromStack();
+							nextStackMovement(); // get new movement from stack
+						}
+					}));
 				} else if(stackMovements.isStartTraceValues.get(currentStackId).equals("3")) {
 					// current position is drill hole (3)
 					System.out.println("Start of target "+currentStackId);
@@ -584,21 +634,34 @@ public class Machine {
 		}
 	}
 	
-	public void shiftMovementFromStack() {
-		/*ArrayList<Float> xValuesTMP = new ArrayList<Float>();
-		ArrayList<Float> yValuesTMP = new ArrayList<Float>();
-		ArrayList<String> isStartTraceValuesTMP = new ArrayList<String>();
-		for(int n=1; n < stackMovements.getStackMovementSize(); n++) {
-			xValuesTMP.add(stackMovements.xValues.get(n));
-			yValuesTMP.add(stackMovements.yValues.get(n));
-			isStartTraceValuesTMP.add(stackMovements.isStartTraceValues.get(n));
-		}		
-		stackMovements.xValues = xValuesTMP;
-		stackMovements.yValues = yValuesTMP;
-		stackMovements.isStartTraceValues = isStartTraceValuesTMP;*/
-		
+	public void shiftMovementFromStack() {		
 		currentStackId++;
 		modeler.mainUI.updateUIMovementList();
 		modeler.mainUI.execStartId.setText(currentStackId.toString());
+		System.out.println("");
+		System.out.println("");
+		System.out.println("");
+		System.out.println("");
+	}
+	
+	public void execStackMovements() {
+		System.out.println("Executing stack...");
+		
+		executingStackCanvasMovements = true;	
+		stackMovements.resetMovementStack();
+		
+		stackMovements.xValues = modeler.mainUI.stackCanvasMovements.xValues;
+		stackMovements.yValues = modeler.mainUI.stackCanvasMovements.yValues;
+		stackMovements.isStartTraceValues = modeler.mainUI.stackCanvasMovements.isStartTraceValues;				
+		//currentStackId = 0;		
+		receivedFB = 0;
+		receivedLR = 0;
+		
+		procXY(currentStackId, new Thread(new Runnable() {
+			@Override
+		    public void run() {	
+				nextStackMovement();	
+			}
+		}));
 	}
 }
